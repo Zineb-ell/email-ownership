@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Email Ownership Handover</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #07080f;
+  font-family: 'DM Sans', sans-serif;
+  color: #dde1ed;
+  min-height: 100vh;
+  padding: 40px 20px 80px;
+}
+.header { text-align: center; margin-bottom: 52px; }
+.eyebrow { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 4px; color: #5c6278; text-transform: uppercase; margin-bottom: 10px; }
+h1 { font-family: 'Syne', sans-serif; font-size: clamp(22px, 3vw, 32px); font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+.subtitle { font-size: 12px; color: #5c6278; margin-top: 8px; font-family: 'DM Mono', monospace; }
+
+/* FLOW WRAPPER */
+.flow { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 0; align-items: stretch; }
+
+/* PHASE BLOCK */
+.phase {
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: #0d0f17;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+.phase-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 22px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.phase-header:hover { background: rgba(255,255,255,0.02); }
+.phase-num {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-weight: 500;
+}
+.phase-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; flex: 1; }
+.phase-badge { font-size: 10px; font-family: 'DM Mono', monospace; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+.chevron { font-size: 12px; color: #5c6278; transition: transform 0.2s; flex-shrink: 0; }
+.phase.open .chevron { transform: rotate(180deg); }
+.phase-body { display: none; padding: 0 22px 18px; }
+.phase.open .phase-body { display: block; }
+.phase-desc { font-size: 12px; color: #8891b0; margin-bottom: 12px; line-height: 1.6; }
+
+/* ITEMS GRID */
+.items-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.item {
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #c4c8d0;
+  border-left: 3px solid var(--ac);
+  flex: 1; min-width: 180px;
+  line-height: 1.5;
+}
+.item strong { color: var(--ac); display: block; margin-bottom: 2px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ARROW */
+.arrow-down {
+  display: flex; flex-direction: column; align-items: center;
+  margin: 8px 0;
+}
+.arrow-shaft { width: 2px; height: 24px; background: linear-gradient(to bottom, rgba(255,255,255,0.15), rgba(255,255,255,0.04)); }
+.arrow-tip { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid rgba(255,255,255,0.15); }
+
+/* LABEL SYSTEM TABLE */
+.label-table { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+.label-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.02); border-radius: 7px;
+  padding: 7px 12px; font-size: 11px;
+}
+.label-name { font-weight: 600; min-width: 130px; color: var(--lc); }
+.label-who { color: #5c6278; font-family: 'DM Mono', monospace; font-size: 9px; margin-left: auto; padding-left: 10px; white-space: nowrap; }
+.label-desc { color: #8891b0; flex: 1; }
+
+/* FILTER TYPES */
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-top: 4px; }
+.filter-card {
+  border-radius: 10px; padding: 12px 14px;
+  border: 1px solid var(--bc);
+  background: var(--bg);
+}
+.filter-title { font-size: 11px; font-weight: 700; color: var(--tc); margin-bottom: 6px; }
+.filter-examples { font-size: 10px; color: #7880a0; line-height: 1.7; }
+
+/* ROUTING TABLE */
+.routing-table { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.routing-row {
+  display: flex; align-items: center; gap: 0;
+  font-size: 11px; border-radius: 7px; overflow: hidden;
+}
+.routing-type { background: rgba(255,255,255,0.04); padding: 7px 12px; flex: 1.6; color: #c4c8d0; }
+.routing-to { padding: 7px 12px; flex: 1; font-weight: 600; font-size: 10px; font-family: 'DM Mono', monospace; color: var(--rc); background: var(--rb); }
+.routing-ceo { padding: 7px 10px; font-size: 9px; color: #5c6278; background: rgba(255,255,255,0.02); min-width: 90px; text-align: center; font-family: 'DM Mono', monospace; }
+.routing-header { background: transparent; font-size: 9px; color: #5c6278; font-family: 'DM Mono', monospace; letter-spacing: 1px; text-transform: uppercase; border-radius: 0; }
+
+/* DAILY BRIEF BOX */
+.brief-box {
+  background: rgba(249,115,22,0.06);
+  border: 1px solid rgba(249,115,22,0.2);
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-top: 4px;
+}
+.brief-sections { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.brief-section {
+  flex: 1; min-width: 160px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border-top: 2px solid var(--sc);
+}
+.brief-sec-title { font-size: 11px; font-weight: 700; color: var(--sc); margin-bottom: 8px; }
+.brief-sec-item { font-size: 10px; color: #8891b0; margin-bottom: 4px; display: flex; gap: 5px; }
+.brief-sec-item::before { content: '→'; color: var(--sc); opacity: 0.6; flex-shrink: 0; }
+.brief-rule { font-size: 10px; color: #5c6278; margin-top: 10px; font-style: italic; }
+
+/* RESULT BANNER */
+.result-banner {
+  background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.05));
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-top: 20px;
+  display: flex; gap: 20px; flex-wrap: wrap;
+}
+.result-item { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 160px; }
+.result-icon { font-size: 22px; flex-shrink: 0; }
+.result-text { font-size: 12px; color: #9ca3c0; }
+.result-text strong { display: block; color: #34d399; font-size: 13px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">Process Design · Gmail · Daily Brief</div>
+  <h1>Email Ownership Handover</h1>
+  <p class="subtitle">click each phase to expand · full end-to-end process</p>
+</div>
+
+<div class="flow">
+
+  <!-- PHASE 0 — PROBLEM -->
+  <div class="phase open" style="border-color:rgba(239,68,68,0.2)">
+    <div class="phase-header" onclick="toggle(this)">
+      <div class="phase-num" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.25)">!</div>
+      <div class="phase-title" style="color:#f87171">The Problem — No Inbox Ownership</div>
+      <div class="phase-badge" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2)">Starting point</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="phase-body">
+      <p class="phase-desc">The CEO had two active business inboxes. He was reading them sporadically — no structure, no filtering, no dedicated owner.</p>
+      <div class="items-grid">
+        <div class="item" style="--ac:#f87171"><strong>Risk 1</strong>Real opportunities being missed — partnerships, legal notices, strategic deals</div>
+        <div class="item" style="--ac:#f87171"><strong>Risk 2</strong>CEO constantly distracted by noise — receipts, system alerts, cold outreach</div>
+        <div class="item" style="--ac:#f87171"><strong>Risk 3</strong>No one owned the inbox — emails fell through the cracks</div>
+        <div class="item" style="--ac:#f87171"><strong>Risk 4</strong>Two inboxes — two business units — no unified process</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><div class="arrow-shaft"></div><div class="arrow-tip"></div></div>
+
+  <!-- PHASE 1 — CEO BRIEF -->
+  <div class="phase" style="border-color:rgba(99,102,241,0.2)">
+    <div class="phase-header" onclick="toggle(this)">
+      <div class="phase-num" style="background:rgba(99,102,241,0.1);color:#818cf8;border:1px solid rgba(99,102,241,0.25)">1</div>
+      <div class="phase-title" style="color:#818cf8">CEO Brief — Analyze First, Then Propose</div>
+      <div class="phase-badge" style="background:rgba(99,102,241,0.1);color:#818cf8;border:1px solid rgba(99,102,241,0.2)">CEO instruction</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="phase-body">
+      <p class="phase-desc">The CEO gave a clear 2-phase instruction: first review without touching anything, then come back with a concrete proposal through the Daily Brief.</p>
+      <div class="items-grid">
+        <div class="item" style="--ac:#818cf8"><strong>Rule</strong>Do not change anything during analysis — review only</div>
+        <div class="item" style="--ac:#818cf8"><strong>Phase 1</strong>Analyse both inboxes — Tue & Wed</div>
+        <div class="item" style="--ac:#818cf8"><strong>Phase 2</strong>Submit proposal via Daily Brief — by Thursday morning</div>
+        <div class="item" style="--ac:#818cf8"><strong>End Goal</strong>Full inbox ownership transferred to EA after alignment</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><div class="arrow-shaft"></div><div class="arrow-tip"></div></div>
+
+  <!-- PHASE 2 — ANALYSIS -->
+  <div class="phase" style="border-color:rgba(245,158,11,0.2)">
+    <div class="phase-header" onclick="toggle(this)">
+      <div class="phase-num" style="background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.25)">2</div>
+      <div class="phase-title" style="color:#fbbf24">Phase 1 — Inbox Analysis (Review Only)</div>
+      <div class="phase-badge" style="background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)">Tue + Wed</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="phase-body">
+      <p class="phase-desc">Full review of both inboxes — no changes made. Every email type categorized into 4 groups.</p>
+      <div class="items-grid">
+        <div class="item" style="--ac:#f43f5e"><strong>🔴 CEO Must See</strong>Partnerships, legal docs, finance alerts, strategic opportunities, HR decisions, Airbnb account flags</div>
+        <div class="item" style="--ac:#10b981"><strong>🟢 Routable</strong>Finance receipts, booking confirmations, ops updates, system alerts → route to correct team</div>
+        <div class="item" style="--ac:#6366f1"><strong>⚙️ Auto-Filter</strong>Verification codes, Slack notifications, login alerts, building notices → skip inbox automatically</div>
+        <div class="item" style="--ac:#ef4444"><strong>🗑️ Unsubscribe</strong>Cold outreach, newsletters, irrelevant promotions → permanently removed</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><div class="arrow-shaft"></div><div class="arrow-tip"></div></div>
+
+  <!-- PHASE 3 — GMAIL LABELS -->
+  <div class="phase" style="border-color:rgba(14,165,233,0.2)">
+    <div class="phase-header" onclick="toggle(this)">
+      <div class="phase-num" style="background:rgba(14,165,233,0.1);color:#38bdf8;border:1px solid rgba(14,165,233,0.25)">3</div>
+      <div class="phase-title" style="color:#38bdf8">Gmail Label System — Full Structure</div>
+      <div class="phase-badge" style="background:rgba(14,165,233,0.1);color:#38bdf8;border:1px solid rgba(14,165,233,0.2)">Built & implemented</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="phase-body">
+      <p class="phase-desc">Every incoming email gets a label. Color-coded for instant visual scanning. CEO only ever sees 2 labels — everything else is handled.</p>
+      <div class="label-table">
+        <div class="label-row"><span class="label-name" style="--lc:#f43f5e;color:#f43f5e">🔴 CEO — DECIDE</span><span class="label-desc">Requires CEO decision or input</span><span class="label-who">In Daily Brief</span></div>
+        <div class="label-row"><span class="label-name" style="--lc:#f97316;color:#f97316">🟠 CEO — FYI</span><span class="label-desc">Info CEO should know, no action needed</span><span class="label-who">If strategic</span></div>
+        <div class="label-row"><span class="label-name" style="--lc:#f59e0b;color:#f59e0b">⚠️ Legal</span><span class="label-desc">Contracts, tenancy, compliance, NDAs</span><span class="label-who">If sig. needed</span></div>
+        <div class="label-row"><span class="label-name" style="--lc:#22d3ee;color:#22d3ee">💰 Finance</span><span class="label-desc">Bank statements, invoices, DEWA, Wio</span><span class="label-who">If urgent</span></div>
+        <div class="label-row"><span class="label-name" style="--lc:#10b981;color:#10b981">🟢 Ops</span><span class="label-desc">Bookings, Guesty, Breezeway, housekeeping</span><span class="label-who">No</span></div>
+        <div class="label-row"><span class="label-name" style="--lc:#a78bfa;color:#a78bfa">🟡 HR</span><span class="label-desc">Recruitment, contracts, onboarding</span><span class="label-who">Final decision</span></div>
+        <div class="label-row"><span class="label-name" style="--lc:#e879f9;color:#e879f9">📢 Marketing</span><span class="label-desc">Campaigns, job forms, agency emails</span><span class="label-who">No</span></div>
+        <div class="label-row"><span class="label-name" style="--lc:#6366f1;color:#6366f1">⚙️ Systems</span><span class="label-desc">Zapier, Monday, Breezeway alerts</span><span class="label-who">No</span></div>
+        <div class="label-row"><span class="label-name" style="--lc:#38bdf8;color:#38bdf8">🤝 Partners</span><span class="label-desc">Guesty, Booking.com, Airbnb, vendors</span><span class="label-who">If strategic</span></div>
+        <div class="label-row"><span class="label-name" style="--lc:#475569;color:#64748b">🗄 Archive Auto</span><span class="label-desc">Verification codes, notifications — auto-archived</span><span class="label-who">Never</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><div class="arrow-shaft"></div><div class="arrow-tip"></div></div>
+
+  <!-- PHASE 4 — FILTERS -->
+  <div class="phase" style="border-color:rgba(168,85,247,0.2)">
+    <div class="phase-header" onclick="toggle(this)">
+      <div class="phase-num" style="background:rgba(168,85,247,0.1);color:#c084fc;border:1px solid rgba(168,85,247,0.25)">4</div>
+      <div class="phase-title" style="color:#c084fc">Gmail Filters — 3 Types of Automation</div>
+      <div class="phase-badge" style="background:rgba(168,85,247,0.1);color:#c084fc;border:1px solid rgba(168,85,247,0.2)">Automated</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="phase-body">
+      <p class="phase-desc">Gmail filters run automatically on every incoming email — no manual sorting needed for most emails.</p>
+      <div class="filter-grid">
+        <div class="filter-card" style="--bg:rgba(71,85,105,0.1);--bc:rgba(71,85,105,0.25);--tc:#94a3b8">
+          <div class="filter-title">🗄 Auto-Archive</div>
+          <div class="filter-examples">
+            Booking.com verification codes<br>
+            Airbnb login alerts<br>
+            Slack notifications<br>
+            Instagram notifications<br>
+            Building management notices<br>
+            → Skip inbox, mark read
+          </div>
+        </div>
+        <div class="filter-card" style="--bg:rgba(14,165,233,0.06);--bc:rgba(14,165,233,0.2);--tc:#38bdf8">
+          <div class="filter-title">🏷️ Route & Label</div>
+          <div class="filter-examples">
+            Finance emails → 💰 Finance<br>
+            Qashio receipts → 💰 Finance<br>
+            DocuSign contracts → ⚠️ Legal<br>
+            Tenancy / Ejari → ⚠️ Legal<br>
+            Recruitment emails → 🟡 HR<br>
+            → Apply label automatically
+          </div>
+        </div>
+        <div class="filter-card" style="--bg:rgba(244,63,94,0.06);--bc:rgba(244,63,94,0.2);--tc:#fb7185">
+          <div class="filter-title">🔴 Priority Flag</div>
+          <div class="filter-examples">
+            "partnership" / "proposal" / "investment"<br>
+            "Cease and Desist" / "Legal" / "Court"<br>
+            Airbnb "suspended" / "policy violation"<br>
+            RAKBank large transfers > 50K AED<br>
+            "investor" / "funding" / "venture"<br>
+            → Auto-flag CEO — DECIDE + Star
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><div class="arrow-shaft"></div><div class="arrow-tip"></div></div>
+
+  <!-- PHASE 5 — ROUTING -->
+  <div class="phase" style="border-color:rgba(16,185,129,0.2)">
+    <div class="phase-header" onclick="toggle(this)">
+      <div class="phase-num" style="background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.25)">5</div>
+      <div class="phase-title" style="color:#34d399">Email Routing Rules — Who Handles What</div>
+      <div class="phase-badge" style="background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2)">EA as router</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="phase-body">
+      <p class="phase-desc">EA acts as the central router. Every email has a defined owner. CEO only sees what genuinely requires his decision.</p>
+      <div class="routing-table">
+        <div class="routing-row routing-header">
+          <div class="routing-type">Email Type</div>
+          <div class="routing-to" style="background:transparent;color:#5c6278">Routed To</div>
+          <div class="routing-ceo">CEO Sees?</div>
+        </div>
+        <div class="routing-row"><div class="routing-type">Bank statements, invoices, DEWA, VAT</div><div class="routing-to" style="--rc:#22d3ee;--rb:rgba(34,211,238,0.07)">Finance Team</div><div class="routing-ceo">Only if blocked/overdue</div></div>
+        <div class="routing-row"><div class="routing-type">Booking confirmations, guest comms</div><div class="routing-to" style="--rc:#10b981;--rb:rgba(16,185,129,0.07)">Ops Team</div><div class="routing-ceo">No</div></div>
+        <div class="routing-row"><div class="routing-type">Housekeeping / maintenance requests</div><div class="routing-to" style="--rc:#10b981;--rb:rgba(16,185,129,0.07)">Ops Team</div><div class="routing-ceo">No</div></div>
+        <div class="routing-row"><div class="routing-type">Tenancy renewals, Ejari certificates</div><div class="routing-to" style="--rc:#f59e0b;--rb:rgba(245,158,11,0.07)">EA tracks (30d alert)</div><div class="routing-ceo">Yes — if renewal needed</div></div>
+        <div class="routing-row"><div class="routing-type">Legal threats, cease & desist</div><div class="routing-to" style="--rc:#f43f5e;--rb:rgba(244,63,94,0.1)">EA → CEO immediately</div><div class="routing-ceo">Yes — same day</div></div>
+        <div class="routing-row"><div class="routing-type">Partnership / sponsorship proposals</div><div class="routing-to" style="--rc:#f43f5e;--rb:rgba(244,63,94,0.1)">EA qualifies → CEO</div><div class="routing-ceo">Yes — Daily Brief</div></div>
+        <div class="routing-row"><div class="routing-type">Airbnb / Booking OTA issues</div><div class="routing-to" style="--rc:#10b981;--rb:rgba(16,185,129,0.07)">Ops first</div><div class="routing-ceo">If account at risk</div></div>
+        <div class="routing-row"><div class="routing-type">Cold outreach / newsletters</div><div class="routing-to" style="--rc:#475569;--rb:rgba(71,85,105,0.1)">Unsubscribe / Archive</div><div class="routing-ceo">Never</div></div>
+        <div class="routing-row"><div class="routing-type">Large bank transfers > 50K AED</div><div class="routing-to" style="--rc:#f43f5e;--rb:rgba(244,63,94,0.1)">EA flags → CEO</div><div class="routing-ceo">Yes — if unexpected</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-down"><div class="arrow-shaft"></div><div class="arrow-tip"></div></div>
+
+  <!-- PHASE 6 — DAILY BRIEF -->
+  <div class="phase" style="border-color:rgba(249,115,22,0.25)">
+    <div class="phase-header" onclick="toggle(this)">
+      <div class="phase-num" style="background:rgba(249,115,22,0.1);color:#fb923c;border:1px solid rgba(249,115,22,0.3)">6</div>
+      <div class="phase-title" style="color:#fb923c">Daily Brief — The Only Email CEO Needs to Open</div>
+      <div class="phase-badge" style="background:rgba(249,115,22,0.12);color:#fb923c;border:1px solid rgba(249,115,22,0.3)">Sent 9:00 AM daily</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="phase-body">
+      <div class="brief-box">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:#fb923c;letter-spacing:2px;margin-bottom:4px;">SUBJECT: Daily Brief — [BUSINESS] | [DATE]</div>
+        <div class="brief-sections">
+          <div class="brief-section" style="--sc:#f43f5e">
+            <div class="brief-sec-title">🔴 DECISIONS NEEDED</div>
+            <div class="brief-sec-item">Action required today</div>
+            <div class="brief-sec-item">Sender + subject in 1 line</div>
+            <div class="brief-sec-item">What decision is needed</div>
+          </div>
+          <div class="brief-section" style="--sc:#f59e0b">
+            <div class="brief-sec-title">🟡 FYI ONLY</div>
+            <div class="brief-sec-item">No action needed</div>
+            <div class="brief-sec-item">Just awareness</div>
+            <div class="brief-sec-item">Brief summary — 1 line</div>
+          </div>
+          <div class="brief-section" style="--sc:#38bdf8">
+            <div class="brief-sec-title">📅 UPCOMING</div>
+            <div class="brief-sec-item">Deadlines this week</div>
+            <div class="brief-sec-item">Contract renewals</div>
+            <div class="brief-sec-item">Meetings to prep for</div>
+          </div>
+        </div>
+        <div class="brief-rule">Max 10 items total · Every item actionable or informative · Critical items also get a Slack flag</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-banner">
+    <div class="result-item">
+      <div class="result-icon">📬</div>
+      <div class="result-text"><strong>Inbox Zero Daily</strong>EA side fully managed every day</div>
+    </div>
+    <div class="result-item">
+      <div class="result-icon">🎯</div>
+      <div class="result-text"><strong>Zero Missed Opportunities</strong>Every high-value email surfaced</div>
+    </div>
+    <div class="result-item">
+      <div class="result-icon">🔇</div>
+      <div class="result-text"><strong>No Noise to CEO</strong>Filtered, routed, or removed</div>
+    </div>
+    <div class="result-item">
+      <div class="result-icon">📋</div>
+      <div class="result-text"><strong>1 Brief Per Day</strong>Only moment CEO needs email</div>
+    </div>
+    <div class="result-item">
+      <div class="result-icon">🔄</div>
+      <div class="result-text"><strong>Replicated for Inbox 2</strong>Same process applied to second business</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggle(header) {
+  const phase = header.parentElement;
+  phase.classList.toggle('open');
+}
+// Open all on load
+document.querySelectorAll('.phase').forEach(p => p.classList.add('open'));
+</script>
+</body>
+</html>
